@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
+</head>
+
+<body>
+    <div class="container">
+        <header class="row">
+            <h1>Gestion des clients</h1>
+        </header>
+
+        <head></head>
+        <section class="row">
+            <h2>Ajouter/modifier client</h2>
+            <form class="d-flex justify-content-center">
+                <input type="hidden" id="id">
+                <input type="text" class="form-control" id="nom" placeholder="nom" name="nom">
+                <input type="text" class="form-control mx-4" id="tel" placeholder="tel" name="tel">
+                <input type="submit" class=" btn btn-outline-dark">
+            </form>
+        </section>
+        <hr>
+        <section class="row">
+            <h2>Liste de clients</h2>
+            <div class="row clients">
+                <p>pas de client pour l'instant</p>
+            </div>
+        </section>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.9.1/firebase-app.js"></script>
+    <!-- a ajouter manuellement: -->
+    <script src="https://www.gstatic.com/firebasejs/8.9.1/firebase-database.js"></script>
+    <script>
+        // Your web app's Firebase configuration
+        var firebaseConfig = {
+            apiKey: "AIzaSyARKIQUd-hivyd2Y5Ueem5NlSaKbubgGZE",
+            authDomain: "gegealf-d8e28.firebaseapp.com",
+            databaseURL: "https://gegealf-d8e28-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "gegealf-d8e28",
+            storageBucket: "gegealf-d8e28.appspot.com",
+            messagingSenderId: "303195479731",
+            appId: "1:303195479731:web:a6f963b99db7594bee9ac6"
+        };
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+    </script>
+    <script>
+        // ajouter un nouvel enregistrement dans la BDD firebase
+        document.querySelector("form").addEventListener("submit", e => {
+            e.preventDefault();
+            let id = e.target.id.value;
+            let nom = e.target.nom.value;
+            let tel = e.target.tel.value;
+            if (id.length == 0) {
+                // ajout d'un client:
+                const refDb = firebase.database().ref("/clients"); // permet de sélectionner "créer une table"
+                const nouveauClient = refDb.push();
+                nouveauClient.set({
+                    nom: nom,
+                    tel: tel
+                })
+
+            } else {
+                // modification des données client dans la BDD:
+                const refDb = firebase.database().ref(`/clients/${id}`);
+                let clientModifie = {
+                    nom: nom,
+                    tel: tel
+                }
+                refDb.update(clientModifie);
+            }
+            e.target.reset(); // pour vider le formulaire (le champ masqué id n'est pas vidé!)
+            e.target.id.value = ""; // pour vider le champ id (masqué)
+        })
+        // récupérer la liste des clients et afficher:
+        window.addEventListener("DOMContentLoaded", () => {
+            const refDb = firebase.database().ref("/clients");
+            refDb.on("value", clients => {
+                let data = clients.val(); // permet de récupérer les infos clients
+                let html = "";
+                for (let id in data) {
+                    html += `
+                    <article class="col-4">
+                        <ul class="list-unstyled">
+                            <li>${data[id].nom}</li>
+                            <li>${data[id].tel}</li>
+                            <li>
+                                <button class="btn btn-warning btm_sm" onclick="modifier('${id}')">Modifier</button>
+                                <button class="btn btn-danger btm_sm" onclick="supprimer('${id}')">Supprimer</button>
+                            </li>
+                        </ul>
+                        </article>
+                    `
+                }
+                document.querySelector(".clients").innerHTML = html;
+            })
+        });
+        // pour supprimer un client:
+        function supprimer(id) {
+            if (!id.length > 0) {
+                alert("erreur!");
+                return false;
+            }
+            firebase.database().ref(`/clients/${id}`).remove();
+        }
+        // pour modifier un client:
+        function modifier(id) {
+            const refDb = firebase.database().ref(`/clients/${id}`);
+            refDb.once("value", client => {
+                document.querySelector("#id").value = id;
+                document.querySelector("#nom").value = client.val().nom;
+                document.querySelector("#tel").value = client.val().tel;
+            })
+        }
+    </script>
+</body>
+
+</html>
